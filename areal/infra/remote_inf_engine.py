@@ -185,6 +185,22 @@ class GroupedRolloutWorkflow(RolloutWorkflow):
                 isinstance(v, InteractionWithTokenLogpReward) for v in first.values()
             )
         ):
+            # The group is complete here and nowhere else. Give the wrapped
+            # workflow the chance to score its samples against each other
+            # before their rewards are frozen into the merged trajectory.
+            rescore = getattr(self.workflow, "rescore_group", None)
+            if callable(rescore) and self.group_size > 1:
+                rescored = await rescore(results)
+                if rescored is not None:
+                    if len(rescored) != len(results):
+                        raise RuntimeError(
+                            f"rescore_group returned {len(rescored)} results for a "
+                            f"group of {len(results)}"
+                        )
+                    results = rescored
+                    valid_results = [r for r in results if r is not None]
+                    if not valid_results:
+                        return None
             if self.reward_normalization and self.group_size > 1:
                 if not self._normalize_group_rewards(results):
                     return None

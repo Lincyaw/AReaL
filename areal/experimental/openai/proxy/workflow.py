@@ -204,6 +204,17 @@ class OpenAIProxyWorkflow(RolloutWorkflow):
             self._shared_tensor_resolver.discard(group_id)
 
     @session_context()
+    async def rescore_group(self, results):
+        """Delegate to the wrapped agent, which is what produced the answers.
+
+        This class owns the proxy session, not the task: only the agent knows
+        what its samples claimed and therefore how they compare.
+        """
+        rescore = getattr(self.agent, "rescore_group", None)
+        if not callable(rescore):
+            return None
+        return await rescore(results)
+
     async def arun_episode(
         self, engine: TRolloutEngine, data: dict[str, Any]
     ) -> dict[str, InteractionWithTokenLogpReward] | None:

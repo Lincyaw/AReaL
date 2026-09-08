@@ -12,6 +12,35 @@ if TYPE_CHECKING:
 
 
 class RolloutWorkflow(ABC):
+    async def rescore_group(
+        self,
+        results: list[dict[str, "InteractionWithTokenLogpReward"] | None],
+    ) -> list[dict[str, "InteractionWithTokenLogpReward"] | None] | None:
+        """Rewrite rewards once the whole group of a prompt has run.
+
+        Called by ``GroupedRolloutWorkflow`` after every sample of one prompt
+        has finished and before their interactions are merged, with the results
+        in sample order and ``None`` for samples that were rejected. Returning
+        ``None`` leaves the rewards the episodes set.
+
+        A reward that is relative to the group cannot be computed inside a
+        single episode. Difficulty weighting needs to know which parts of the
+        answer the siblings also found; best-of-k relabelling and
+        self-consistency voting need the siblings' answers themselves. The
+        group already exists at this point — this is where it becomes visible.
+
+        Parameters
+        ----------
+        results : list
+            One entry per sample of the group, in sample order.
+
+        Returns
+        -------
+        list | None
+            The results with rewards rewritten, or ``None`` to leave them.
+        """
+        return None
+
     @abstractmethod
     async def arun_episode(
         self, engine: InferenceEngine, data: dict[str, Any]
