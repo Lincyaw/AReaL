@@ -129,6 +129,33 @@ class PPOTrainer:
             self.close()
             raise
 
+    @staticmethod
+    def _evaluation_is_scheduled(config) -> bool:
+        """Whether any evaluation will ever run, so the engine is worth building.
+
+        A second rollout engine is not free: it forks one worker per replica,
+        each claiming its own ports, and a machine already holding a few hundred
+        listening sockets can fail to place them — `find_free_ports` samples the
+        range at random and gives up after `count * 10` tries, so the failure
+        surfaces as `WorkerCreationError: Failed to create worker
+        'eval-rollout'` and takes the whole run down before the first rollout.
+        That is a steep price for an engine that never receives a request.
+
+        An evaluation runs only when the evaluator has a frequency to fire on,
+        or is asked to run once before training. With none of those set, every
+        `_evaluate` call returns at its own `eval_rollout is None` guard, so
+        skipping construction changes nothing that would have happened.
+        """
+        evaluator = getattr(config, "evaluator", None)
+        if evaluator is None:
+            return False
+        if getattr(evaluator, "eval_before_train", False):
+            return True
+        return any(
+            getattr(evaluator, name, None) is not None
+            for name in ("freq_epochs", "freq_steps", "freq_secs")
+        )
+
     def _init_impl(
         self,
         config: PPOConfig,
@@ -384,7 +411,7 @@ class PPOTrainer:
         )
 
         self.eval_rollout = None
-        if not self._online_mode:
+        if not self._online_mode and self._evaluation_is_scheduled(config):
             self.eval_rollout = self._init_rollout(
                 config.rollout, is_eval=True, lora_path=initial_lora_path
             )
