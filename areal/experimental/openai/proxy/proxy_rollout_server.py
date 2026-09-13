@@ -752,6 +752,15 @@ async def _call_client_create(
     # leak through kwargs and cause the client to return an AsyncGenerator even
     # when the caller did not ask for streaming.
     kwargs.pop("stream", None)
+    # Strip store for a different reason: it does not mean here what it means to
+    # the client that sent it. In the OpenAI API `store` asks the provider not
+    # to retain the conversation, and clients set it false as a privacy default
+    # — pi-ai does, for every provider whose compat profile allows it. In this
+    # proxy the interaction cache is not retention, it is the trajectory the
+    # rollout is being run to produce. Honouring the flag discards the episode
+    # and every reward set on it fails with "interaction not found", silently,
+    # after the generation has already been paid for.
+    kwargs.pop("store", None)
     if stream:
         kwargs["stream"] = True
 
