@@ -145,6 +145,7 @@ _port_alloc_lock = asyncio.Lock()
 # Deterministic sampling (set from InferenceEngineConfig at setup time).
 _deterministic_sampling: bool = False
 _default_top_p: float | None = None
+_default_top_k: int | None = None
 
 # Server config (needed for name_resolve registration)
 _experiment_name: str | None = None
@@ -311,7 +312,7 @@ async def alloc_ports(raw_request: Request):
 def _setup_openai_client():
     global _openai_client, _session_timeout_seconds, _admin_api_key
     global _message_preprocessors, _prefix_matcher, _deterministic_sampling
-    global _default_top_p
+    global _default_top_p, _default_top_k
     config = _engine.config
     _deterministic_sampling = bool(getattr(config, "deterministic_sampling", False))
     processor, tokenizer = load_hf_processor_and_tokenizer(config.tokenizer_path)
@@ -319,6 +320,7 @@ def _setup_openai_client():
         processor = None
     agent_cfg = config.agent
     _default_top_p = getattr(agent_cfg, "default_top_p", None)
+    _default_top_k = getattr(agent_cfg, "default_top_k", None)
     _openai_client = ArealOpenAI(
         engine=_engine,
         tokenizer=tokenizer,
@@ -738,6 +740,12 @@ async def _call_client_create(
         kwargs["top_p"] = 1.0 if _default_top_p is None else _default_top_p
         if _default_top_p is None:
             _warn_once("top_p not set in request, defaulting to 1.0")
+    if _default_top_k is not None and "top_k" not in kwargs:
+        # top_k is not an OpenAI request field, so the TypedDict strips it before
+        # this function ever sees it and no adapter can forward one. Injected
+        # here, `agent.default_top_k` is the only way the experiment's value
+        # reaches the sampler.
+        kwargs["top_k"] = _default_top_k
 
     if (
         _deterministic_sampling
