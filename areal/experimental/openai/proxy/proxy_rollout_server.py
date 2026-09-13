@@ -144,7 +144,6 @@ _port_alloc_lock = asyncio.Lock()
 
 # Deterministic sampling (set from InferenceEngineConfig at setup time).
 _deterministic_sampling: bool = False
-_default_top_p: float | None = None
 
 # Server config (needed for name_resolve registration)
 _experiment_name: str | None = None
@@ -311,14 +310,12 @@ async def alloc_ports(raw_request: Request):
 def _setup_openai_client():
     global _openai_client, _session_timeout_seconds, _admin_api_key
     global _message_preprocessors, _prefix_matcher, _deterministic_sampling
-    global _default_top_p
     config = _engine.config
     _deterministic_sampling = bool(getattr(config, "deterministic_sampling", False))
     processor, tokenizer = load_hf_processor_and_tokenizer(config.tokenizer_path)
     if processor is not None and not hasattr(processor, "image_processor"):
         processor = None
     agent_cfg = config.agent
-    _default_top_p = getattr(agent_cfg, "default_top_p", None)
     _openai_client = ArealOpenAI(
         engine=_engine,
         tokenizer=tokenizer,
@@ -731,13 +728,8 @@ async def _call_client_create(
         kwargs["temperature"] = 1.0
         _warn_once("temperature not set in request, defaulting to 1.0")
     if "top_p" not in kwargs:
-        # Sampling parameters are read off the request body, so an agent whose
-        # adapter does not forward top_p gets 1.0 no matter what gconfig says.
-        # `agent.default_top_p` lets the experiment state the value once for
-        # those agents; unset, the previous default stands.
-        kwargs["top_p"] = 1.0 if _default_top_p is None else _default_top_p
-        if _default_top_p is None:
-            _warn_once("top_p not set in request, defaulting to 1.0")
+        kwargs["top_p"] = 1.0
+        _warn_once("top_p not set in request, defaulting to 1.0")
 
     if (
         _deterministic_sampling
