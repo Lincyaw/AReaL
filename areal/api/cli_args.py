@@ -2453,6 +2453,15 @@ class AgentConfig:
         default=None,
         metadata={"help": "Maximum total tokens for the engine (prompt + completion)."},
     )
+    default_top_p: float | None = field(
+        default=None,
+        metadata={
+            "help": "top_p applied to proxy requests that do not carry one. The "
+            "proxy reads sampling parameters off the HTTP request body, so an "
+            "agent whose adapter does not forward top_p samples at 1.0 however "
+            "gconfig.top_p is set. Leave unset to keep that behaviour."
+        },
+    )
     turn_discount: float = field(
         default=1.0,
         metadata={"help": "Discount factor for multi-turn reward propagation."},
