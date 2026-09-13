@@ -2462,15 +2462,6 @@ class AgentConfig:
             "gconfig.top_p is set. Leave unset to keep that behaviour."
         },
     )
-    default_top_k: int | None = field(
-        default=None,
-        metadata={
-            "help": "top_k applied to proxy requests that do not carry one. top_k "
-            "is not an OpenAI request field, so it is stripped before the proxy "
-            "sees it and no agent can forward it; unset, generation uses the "
-            "GenerationHyperparameters default (1e8), however gconfig.top_k is set."
-        },
-    )
     turn_discount: float = field(
         default=1.0,
         metadata={"help": "Discount factor for multi-turn reward propagation."},

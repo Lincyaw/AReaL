@@ -955,7 +955,6 @@ class AsyncCompletionsWithReward(BaseAsyncCompletions):
         tool_choice: ChatCompletionToolChoiceOptionParam | NotGiven = NOT_GIVEN,
         tools: Iterable[ChatCompletionToolParam] | NotGiven = NOT_GIVEN,
         top_p: float | None | NotGiven = NOT_GIVEN,
-        top_k: int | None | NotGiven = NOT_GIVEN,
         extra_body: Body | None = None,
         areal_cache: InteractionCache | None = None,
         processor_cache: ProcessorCallCache | None = None,
@@ -982,7 +981,6 @@ class AsyncCompletionsWithReward(BaseAsyncCompletions):
         tool_choice: ChatCompletionToolChoiceOptionParam | NotGiven = NOT_GIVEN,
         tools: Iterable[ChatCompletionToolParam] | NotGiven = NOT_GIVEN,
         top_p: float | None | NotGiven = NOT_GIVEN,
-        top_k: int | None | NotGiven = NOT_GIVEN,
         extra_body: Body | None = None,
         areal_cache: InteractionCache | None = None,
         processor_cache: ProcessorCallCache | None = None,
@@ -1008,7 +1006,6 @@ class AsyncCompletionsWithReward(BaseAsyncCompletions):
         tool_choice: ChatCompletionToolChoiceOptionParam | NotGiven = NOT_GIVEN,
         tools: Iterable[ChatCompletionToolParam] | NotGiven = NOT_GIVEN,
         top_p: float | None | NotGiven = NOT_GIVEN,
-        top_k: int | None | NotGiven = NOT_GIVEN,
         extra_body: Body | None = None,
         areal_cache: InteractionCache | None = None,
         processor_cache: ProcessorCallCache | None = None,
@@ -1164,9 +1161,6 @@ class AsyncCompletionsWithReward(BaseAsyncCompletions):
             )
 
         top_p_val = 1.0 if is_omitted(top_p) else (top_p or 1.0)
-        # Omitted from the gconfig overrides below when unset, so the field keeps
-        # its GenerationHyperparameters default instead of being pinned to None.
-        top_k_val = None if is_omitted(top_k) else top_k
         stop_tokens = None if is_omitted(stop) else stop
 
         # Since the concat logic cannot properly handle stop tokens yet, so we remove stop here.
@@ -1201,7 +1195,6 @@ class AsyncCompletionsWithReward(BaseAsyncCompletions):
             stop_token_ids=list(
                 set([self.tokenizer.eos_token_id, self.tokenizer.pad_token_id])
             ),
-            **({} if top_k_val is None else {"top_k": top_k_val}),
         )
 
         model_request = ModelRequest(
